@@ -1,0 +1,48 @@
+#include <iostream>
+#include <vector>
+#include <omp.h>
+
+using namespace std;
+
+int main() {
+    int n, capacity;
+
+    // Get user input for number of items and knapsack capacity
+    cout << "Enter number of items: ";
+    cin >> n;
+    cout << "Enter the knapsack capacity: ";
+    cin >> capacity;
+
+    // Initialize weight and value vectors
+    vector<int> weights(n), values(n);
+
+    // Get input for weights and values
+    for (int i = 0; i < n; i++) {
+        cout << "Enter weight for item " << i + 1 << ": ";
+        cin >> weights[i];
+        cout << "Enter value for item " << i + 1 << ": ";
+        cin >> values[i];
+    }
+
+    // Create DP table to store the maximum value for each weight capacity
+    vector<vector<int>> dp(n + 1, vector<int>(capacity + 1, 0));
+
+    // Parallelize the DP table computation
+    #pragma omp parallel for
+    for (int i = 1; i <= n; i++) {
+        for (int w = 1; w <= capacity; w++) {
+            if (weights[i - 1] <= w) {
+                // Include the item
+                dp[i][w] = max(dp[i - 1][w], dp[i - 1][w - weights[i - 1]] + values[i - 1]);
+            } else {
+                // Exclude the item
+                dp[i][w] = dp[i - 1][w];
+            }
+        }
+    }
+
+    // The answer will be in dp[n][capacity]
+    cout << "Maximum value that can be obtained: " << dp[n][capacity] << endl;
+
+    return 0;
+}

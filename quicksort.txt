@@ -1,0 +1,81 @@
+#include <iostream>
+#include <omp.h>
+#include <vector>
+
+using namespace std;
+
+// Function to swap elements
+void swap(int &a, int &b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+// Partition function to divide the array into two parts
+int partition(vector<int>& arr, int low, int high) {
+    int pivot = arr[high];  // pivot element is the last element
+    int i = low - 1;        // index of smaller element
+
+    for (int j = low; j < high; j++) {
+        if (arr[j] <= pivot) {
+            i++;
+            swap(arr[i], arr[j]);
+        }
+    }
+    swap(arr[i + 1], arr[high]);
+    return i + 1;
+}
+
+// Parallel QuickSort function
+void parallelQuickSort(vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int pivotIndex = partition(arr, low, high);
+
+        // Parallelize the recursive quicksort calls using OpenMP
+        #pragma omp parallel sections
+        {
+            #pragma omp section
+            parallelQuickSort(arr, low, pivotIndex - 1); // Left side
+
+            #pragma omp section
+            parallelQuickSort(arr, pivotIndex + 1, high); // Right side
+        }
+    }
+}
+
+int main() {
+    int n;
+
+    // Take input for the size of the array
+    cout << "Enter the number of elements: ";
+    cin >> n;
+
+    vector<int> arr(n);
+
+    // Take input for the elements of the array
+    cout << "Enter the elements of the array:\n";
+    for (int i = 0; i < n; i++) {
+        cin >> arr[i];
+    }
+
+    // Start measuring time
+    double start_time = omp_get_wtime();
+
+    // Perform parallel quicksort
+    parallelQuickSort(arr, 0, n - 1);
+
+    // End measuring time
+    double end_time = omp_get_wtime();
+
+    // Output the sorted array
+    cout << "Sorted array:\n";
+    for (int i = 0; i < n; i++) {
+        cout << arr[i] << " ";
+    }
+    cout << endl;
+
+    // Print the time taken to sort the array
+    cout << "Time taken: " << end_time - start_time << " seconds" << endl;
+
+    return 0;
+}

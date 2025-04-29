@@ -1,0 +1,101 @@
+#include <iostream>
+#include <vector>
+#include <queue>
+#include <climits>
+#include <omp.h>
+
+using namespace std;
+
+// Node structure for the Huffman tree
+struct HuffmanNode {
+    char data;
+    int freq;
+    HuffmanNode *left, *right;
+
+    HuffmanNode(char d, int f) : data(d), freq(f), left(NULL), right(NULL) {}
+};
+
+// Comparator for the priority queue to build the Huffman tree
+struct Compare {
+    bool operator()(HuffmanNode* l, HuffmanNode* r) {
+        return l->freq > r->freq;
+    }
+};
+
+// Function to calculate the frequency of each character in parallel
+void calculateFrequency(const string &input, vector<int> &freq) {
+    #pragma omp parallel for
+    for (int i = 0; i < input.size(); i++) {
+        #pragma omp atomic
+        freq[input[i]]++;
+    }
+}
+
+// Function to generate the Huffman tree
+HuffmanNode* buildHuffmanTree(const vector<int> &freq) {
+    priority_queue<HuffmanNode*, vector<HuffmanNode*>, Compare> minHeap;
+
+    // Create a node for each character with non-zero frequency
+    for (int i = 0; i < 256; i++) {
+        if (freq[i] > 0) {
+            minHeap.push(new HuffmanNode((char)i, freq[i]));
+        }
+    }
+
+    // Build the Huffman tree
+    while (minHeap.size() > 1) {
+        HuffmanNode *left = minHeap.top(); minHeap.pop();
+        HuffmanNode *right = minHeap.top(); minHeap.pop();
+
+        HuffmanNode *top = new HuffmanNode('\0', left->freq + right->freq);
+        top->left = left;
+        top->right = right;
+
+        minHeap.push(top);
+    }
+
+    return minHeap.top(); // Root of the Huffman tree
+}
+
+// Function to generate the Huffman codes (recursively)
+void generateCodes(HuffmanNode* root, string str, vector<string>& codes) {
+    if (!root) return;
+    if (root->data != '\0') {
+        codes[root->data] = str; // Store the code for the character
+    }
+    generateCodes(root->left, str + "0", codes);
+    generateCodes(root->right, str + "1", codes);
+}
+
+// Function to encode the input using Huffman codes
+void encode(const string &input, const vector<string>& codes) {
+    for (char c : input) {
+        cout << codes[c];
+    }
+    cout << endl;
+}
+
+int main() {
+    string input = "this is an example for huffman encoding";
+
+    vector<int> freq(256, 0); // Frequency array for characters (ASCII)
+
+    // Calculate frequency of each character using OpenMP
+    #pragma omp parallel
+    {
+        calculateFrequency(input, freq);
+    }
+
+    // Build the Huffman tree from frequencies
+    HuffmanNode* root = buildHuffmanTree(freq);
+
+    // Generate Huffman codes for each character
+    vector<string> codes(256);
+    generateCodes(root, "", codes);
+
+    // Encode the input string using the generated Huffman codes
+    cout << "Encoded output: ";
+    encode(input, codes);
+
+    return 0;
+}

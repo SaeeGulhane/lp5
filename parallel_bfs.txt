@@ -1,0 +1,99 @@
+#include <iostream>
+#include <queue>
+#include <omp.h>
+
+using namespace std;
+
+struct Node {
+    int data;
+    Node* left;
+    Node* right;
+};
+
+// Function to insert nodes level-wise
+Node* insert(Node* root, int data) {
+    if (!root) {
+        root = new Node{data, NULL, NULL};
+        return root;
+    }
+
+    queue<Node*> q;
+    q.push(root);
+
+    while (!q.empty()) {
+        Node* curr = q.front();
+        q.pop();
+
+        if (!curr->left) {
+            curr->left = new Node{data, NULL, NULL};
+            return root;
+        } else {
+            q.push(curr->left);
+        }
+
+        if (!curr->right) {
+            curr->right = new Node{data, NULL, NULL};
+            return root;
+        } else {
+            q.push(curr->right);
+        }
+    }
+
+    return root;
+}
+
+// Function to perform Parallel BFS traversal
+void bfs(Node* root) {
+    if (!root) return;
+
+    queue<Node*> q;
+    q.push(root);
+
+    while (!q.empty()) {
+        int level_size = q.size();
+        Node* current_level[level_size];  // Array to hold nodes at current level
+
+        // Collect nodes at the current level
+        for (int i = 0; i < level_size; ++i) {
+            current_level[i] = q.front();
+            q.pop();
+        }
+
+        // Process nodes in parallel
+        #pragma omp parallel for
+        for (int i = 0; i < level_size; ++i) {
+            cout << current_level[i]->data << "\t";
+        }
+
+        cout << endl;  // new line after each level
+
+        // Queue children for next level
+        for (int i = 0; i < level_size; ++i) {
+            if (current_level[i]->left) q.push(current_level[i]->left);
+            if (current_level[i]->right) q.push(current_level[i]->right);
+        }
+    }
+}
+
+int main() {
+    Node* root = NULL;
+    int data;
+    char choice;
+
+    cout << "Enter data for the binary tree:\n";
+    
+    // Insert nodes into the tree
+    do {
+        cout << "Enter node data: ";
+        cin >> data;
+        root = insert(root, data);
+        cout << "Insert another node? (y/n): ";
+        cin >> choice;
+    } while (choice == 'y' || choice == 'Y');
+
+    // Perform BFS traversal and print result
+    cout << "\nBFS Traversal:\n";
+    bfs(root);
+
+    return 0;
+}

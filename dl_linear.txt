@@ -1,0 +1,97 @@
+import numpy as np
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from tensorflow.keras.datasets import boston_housing
+import tensorflow as tf
+from tensorflow.keras import layers, models
+import matplotlib.pyplot as plt
+
+(X_train, y_train), (X_test, y_test) = boston_housing.load_data()
+
+X = np.vstack((X_train, X_test))
+y = np.hstack((y_train, y_test))
+
+feature_names = [
+    'CRIM', 'ZN', 'INDUS', 'CHAS', 'NOX', 'RM',
+    'AGE', 'DIS', 'RAD', 'TAX', 'PTRATIO', 'B', 'LSTAT'
+]
+
+df = pd.DataFrame(X, columns=feature_names)
+df['Price'] = y
+
+print(df.head())
+
+# Features and target variable
+X = df.drop('Price', axis=1).values
+y = df['Price'].values
+
+# Standardize the data (important for neural networks)
+scaler = StandardScaler()
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+# Build the Deep Neural Network model for Linear Regression
+model = models.Sequential([
+    layers.Dense(64, activation='relu', input_dim=X_train.shape[1]),
+    layers.Dense(64, activation='relu'),
+    layers.Dense(32, activation='relu'),
+    layers.Dense(1)  # Output layer with 1 neuron for regression output (no activation function)
+])
+
+# Compile the model
+model.compile(optimizer='adam', loss='mean_squared_error')
+
+# Train the model
+history = model.fit(X_train, y_train, epochs=10, batch_size=32, validation_data=(X_test, y_test), verbose=1)
+
+# Evaluate the model on the test data
+test_loss = model.evaluate(X_test, y_test)
+print(f"Test Loss (Mean Squared Error): {test_loss}")
+
+# Make predictions
+predictions = model.predict(X_test)
+
+# Compare the predictions to the actual values
+plt.figure(figsize=(8, 6))
+plt.scatter(y_test, predictions)
+plt.plot([min(y_test), max(y_test)], [min(y_test), max(y_test)], color='red')  # 45-degree line
+plt.xlabel('True Values')
+plt.ylabel('Predictions')
+plt.title('True vs Predicted Housing Prices')
+plt.show()
+
+# Optionally, plot the loss curve
+plt.plot(history.history['loss'], label='Train Loss')
+plt.plot(history.history['val_loss'], label='Validation Loss')
+plt.title('Loss Curve')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
+
+import seaborn as sns
+print("\nCorrelation matrix:")
+correlation_matrix = df.corr()
+print(correlation_matrix)
+
+plt.figure(figsize=(12, 8))
+sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f')
+plt.title('Correlation Matrix of Features')
+plt.show()
+
+# Visualizing the distribution of the target variable (Price)
+plt.figure(figsize=(8, 6))
+sns.histplot(df['Price'], kde=True, bins=30)
+plt.title('Distribution of Housing Prices')
+plt.xlabel('Price')
+plt.ylabel('Frequency')
+plt.show()
+
+# Visualizing the relationship between the most correlated feature and Price
+plt.figure(figsize=(8, 6))
+sns.scatterplot(x=df['RM'], y=df['Price'])
+plt.title('Price vs Average Number of Rooms (RM)')
+plt.xlabel('Average Number of Rooms (RM)')
+plt.ylabel('Price')
+plt.show()

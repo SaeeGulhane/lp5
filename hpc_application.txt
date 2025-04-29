@@ -1,0 +1,55 @@
+#include <iostream>
+#include <vector>
+#include <omp.h>  // For OpenMP parallelization
+
+using namespace std;
+
+void vectorAdd(const vector<int>& A, const vector<int>& B, vector<int>& C, int n) {
+    // Parallelize the vector addition using OpenMP
+    #pragma omp parallel for
+    for (int i = 0; i < n; i++) {
+        C[i] = A[i] + B[i];  // Element-wise addition
+    }
+}
+
+void printVector(const vector<int>& vec, int n) {
+    for (int i = 0; i < n; i++) {
+        cout << vec[i] << " ";
+    }
+    cout << endl;
+}
+
+int main() {
+    int n;
+
+    cout << "Enter the size of the vectors: ";
+    cin >> n;
+
+    // Create and initialize vectors A, B, and C
+    vector<int> A(n), B(n), C(n);
+
+    cout << "\nEnter elements for Vector A:\n";
+    for (int i = 0; i < n; i++) {
+        cin >> A[i];
+    }
+
+    cout << "\nEnter elements for Vector B:\n";
+    for (int i = 0; i < n; i++) {
+        cin >> B[i];
+    }
+
+    // Measure the execution time
+    double start = omp_get_wtime();
+
+    // Perform vector addition in parallel
+    vectorAdd(A, B, C, n);
+
+    double end = omp_get_wtime();
+
+    cout << "\nResultant Vector C = A + B:\n";
+    printVector(C, n);
+
+    cout << "\nVector addition completed in " << end - start << " seconds.\n";
+
+    return 0;
+}
